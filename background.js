@@ -1,15 +1,21 @@
 chrome.runtime.onInstalled.addListener(function () {
-    chrome.storage.sync.set({ color: '#3aa757' }, function () {
-        console.log("The color is green.");
-        console.log(document)
-    });
-
-    chrome.runtime.getBackgroundPage(win => {
-        console.log(win)
-        // win.document.addEventListener('mouseover', e => {
-        //     console.log(0)
-        // });
-    });
+    chrome.runtime.onMessage.addListener(
+        function (request, sender, sendResponse) {
+            switch (request.type) {
+                case 'set':
+                    chrome.storage.local.set({ blockedElements: request.data });
+                    sendResponse(request.data);
+                    break;
+                case 'get':
+                    chrome.storage.local.get(['blockedElements'], function (value) {
+                        sendResponse(value.blockedElements);
+                    });
+                    return true;
+                case 'clear':
+                    chrome.storage.local.clear();
+                    break;
+            }
+        });
 
     chrome.declarativeContent.onPageChanged.removeRules(undefined, function () {
         chrome.declarativeContent.onPageChanged.addRules([

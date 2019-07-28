@@ -1,4 +1,7 @@
 let element;
+let blockedElements = [];
+
+retrieveBlockedElements();
 
 document.addEventListener('mouseover', e => {
     if (element) element.classList.remove('onHover');
@@ -7,40 +10,28 @@ document.addEventListener('mouseover', e => {
     element.classList.add('onHover');
 });
 document.addEventListener('click', e => {
-    if (e.ctrlKey) dragElement(e.target);
     if (!e.altKey) return;
     e.preventDefault();
-    element.parentNode.removeChild(element);
+    element.classList.remove('onHover');
+    if (!element.className) return;
+    blockedElements.push(element.className);
+    sendToBackground(Array.from(new Set(blockedElements)));
+    removeElement(element);
 });
 
-function dragElement(elmnt) {
-    alert(elmnt.tagName);
-    elmnt.style.position = 'absolute';
-    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-    elmnt.onmousedown = dragMouseDown;
-
-    function dragMouseDown(e) {
-        e = e || window.event;
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
-    }
-
-    function elementDrag(e) {
-        e = e || window.event;
-        e.preventDefault();
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-    }
-
-    function closeDragElement() {
-        document.onmouseup = null;
-        document.onmousemove = null;
-    }
+function sendToBackground(data) {
+    chrome.runtime.sendMessage({ type: 'set', data });
+}
+function retrieveBlockedElements() {
+    chrome.runtime.sendMessage({ type: 'get' }, function (response) {
+        blockedElements = response || [];
+        blockedElements.forEach(className => {
+            if (document.getElementsByClassName(className)[0]) {
+                removeElement(document.getElementsByClassName(className)[0])
+            }
+        });
+    });
+}
+function removeElement(element) {
+    element.parentNode.removeChild(element);
 }
